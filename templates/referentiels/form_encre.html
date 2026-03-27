@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} encre — Triax Ink{% endblock %}
+{% block page_title %}{{ action }} une encre{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:480px">
+  <div class="card-title">{{ action }} encre</div>
+  <form method="POST">
+    <div class="form-group">
+      <label class="form-label">Référence *</label>
+      <input type="text" name="reference" class="form-control"
+             value="{{ encre.reference if encre else '' }}"
+             placeholder="ex. ENC-UV-001"
+             {% if encre %}readonly style="background:var(--gray-bg)"{% endif %}
+             required>
+      {% if encre %}
+      <div style="font-size:11px;color:var(--gray-mid);margin-top:3px">
+        La référence ne peut pas être modifiée.
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Nom de l'encre *</label>
+      <input type="text" name="nom" class="form-control"
+             value="{{ encre.nom if encre else '' }}"
+             placeholder="ex. Cyan UV Flexo Pro" required>
+    </div>
+
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label">Type d'encre *</label>
+        <select name="type_encre" class="form-control" onchange="majDensite(this)" id="sel-type">
+          <option value="">— Choisir —</option>
+          {% for t, d in [('UV', 1.1), ('EAU', 1.0), ('SOLVANT', 0.9)] %}
+          <option value="{{ t }}" data-densite="{{ d }}"
+                  {% if encre and encre.type_encre == t %}selected{% endif %}>
+            {{ t }} (densité {{ d }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Densité (kg/L)</label>
+        <input type="number" name="densite" class="form-control" step="0.01" min="0.5" max="2.0"
+               id="inp-densite"
+               value="{{ encre.densite if encre else '' }}"
+               placeholder="1.0">
+        <div style="font-size:11px;color:var(--gray-mid);margin-top:3px">
+          UV=1.1 / Eau=1.0 / Solvant=0.9 (modifiable si différent)
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <div class="flex-gap">
+      <button type="submit" class="btn btn-primary">{{ action }}</button>
+      <a href="{{ url_for('ref.encres') }}" class="btn">Annuler</a>
+    </div>
+  </form>
+</div>
+
+<script>
+function majDensite(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.densite) {
+    document.getElementById('inp-densite').value = opt.dataset.densite;
+  }
+}
+</script>
+{% endblock %}

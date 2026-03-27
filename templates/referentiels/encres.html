@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Encres — Triax Ink{% endblock %}
+{% block page_title %}Référentiel Encres{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="flex-between mb-2">
+    <div class="card-title" style="margin:0">
+      Encres enregistrées
+      <span style="font-size:12px;font-weight:400;color:var(--gray-mid);margin-left:8px">
+        {{ encres|length }} encre(s)
+      </span>
+    </div>
+    <div class="flex-gap">
+      <!-- Import CSV/Excel -->
+      <form method="POST" action="{{ url_for('ref.importer_encres') }}"
+            enctype="multipart/form-data" style="display:flex;gap:6px;align-items:center">
+        <input type="file" name="fichier" accept=".csv,.xlsx,.xls"
+               class="form-control" style="width:auto;font-size:12px">
+        <button type="submit" class="btn btn-sm">⬆ Importer</button>
+      </form>
+      <a href="{{ url_for('ref.ajouter_encre') }}" class="btn btn-primary btn-sm">＋ Ajouter</a>
+    </div>
+  </div>
+
+  <!-- Format import -->
+  <div class="alert alert-info" style="font-size:12px;margin-bottom:12px">
+    Format CSV/Excel attendu — colonnes : <code>reference</code>, <code>nom</code>,
+    <code>type_encre</code> (UV/EAU/SOLVANT), <code>densite</code> (optionnel)
+  </div>
+
+  {% if encres %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Référence</th>
+        <th>Nom</th>
+        <th>Type</th>
+        <th>Densité (kg/L)</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in encres %}
+      <tr>
+        <td><strong>{{ e.reference }}</strong></td>
+        <td>{{ e.nom }}</td>
+        <td>
+          <span class="badge badge-{{ e.type_encre|lower|replace('eau','eau')|replace('uv','uv')|replace('solvant','solv') }}">
+            {{ e.type_encre }}
+          </span>
+        </td>
+        <td>{{ e.densite }}</td>
+        <td>
+          <div class="flex-gap">
+            <a href="{{ url_for('ref.modifier_encre', encre_id=e.id) }}" class="btn btn-sm">Modifier</a>
+            <form method="POST" action="{{ url_for('ref.supprimer_encre', encre_id=e.id) }}"
+                  onsubmit="return confirm('Supprimer l\'encre {{ e.reference }} ?')" style="margin:0">
+              <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center;padding:40px;color:var(--gray-mid)">
+    Aucune encre enregistrée.<br>
+    <a href="{{ url_for('ref.ajouter_encre') }}" style="color:var(--blue)">Ajouter la première →</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

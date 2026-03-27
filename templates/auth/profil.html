@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Mon profil — Triax Ink{% endblock %}
+{% block page_title %}Mon profil{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:860px">
+
+  <!-- Infos compte -->
+  <div class="card">
+    <div class="card-title">Informations du compte</div>
+    <table style="width:100%;font-size:13px;border-collapse:collapse">
+      {% for label, val in [
+        ('Référence', current_user.reference),
+        ('Nom', current_user.nom),
+        ('Email', current_user.email or '—'),
+        ('Type d\'encre', current_user.type_encre),
+        ('Densité encre', current_user.densite_encre),
+        ('Rôle', current_user.role),
+      ] %}
+      <tr>
+        <td style="padding:7px 0;color:var(--gray-mid);width:45%">{{ label }}</td>
+        <td style="padding:7px 0;font-weight:500">{{ val }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <!-- Quotas -->
+  <div class="card">
+    <div class="card-title">Quota d'analyses IA</div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:32px;font-weight:500;color:var(--blue-dark)">
+        {{ current_user.quota_restant }}
+        <span style="font-size:14px;font-weight:400;color:var(--gray-mid)">
+          / {{ current_user.quota_total }} crédits restants
+        </span>
+      </div>
+      {% set pct = [(current_user.quota_utilise / current_user.quota_total * 100)|int, 100]|min if current_user.quota_total > 0 else 0 %}
+      <div style="height:6px;background:var(--gray-light);border-radius:3px;margin-top:10px;overflow:hidden">
+        <div style="height:100%;width:{{ pct }}%;background:var(--blue);border-radius:3px"></div>
+      </div>
+      <div style="font-size:11px;color:var(--gray-mid);margin-top:5px">
+        {{ current_user.quota_utilise }} utilisé(s)
+      </div>
+    </div>
+    {% if current_user.quota_restant < 10 %}
+    <div class="alert alert-warning" style="font-size:12px">
+      Quota faible. Contactez Triax pour recharger vos crédits.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Marge de sécurité -->
+  <div class="card">
+    <div class="card-title">Marge de sécurité par défaut</div>
+    <form method="POST">
+      <input type="hidden" name="action" value="update_marge">
+      <div class="form-group">
+        <label class="form-label">Marge appliquée à chaque OF (%)</label>
+        <input type="number" name="marge_securite_pct" class="form-control"
+               step="0.5" min="0" max="50"
+               value="{{ current_user.marge_securite_pct }}">
+        <div style="font-size:11px;color:var(--gray-mid);margin-top:3px">
+          Cette marge est pré-remplie à chaque nouvel OF. Elle reste modifiable par OF.
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
+    </form>
+  </div>
+
+  <!-- Mot de passe -->
+  <div class="card">
+    <div class="card-title">Changer le mot de passe</div>
+    <form method="POST">
+      <input type="hidden" name="action" value="change_password">
+      <div class="form-group">
+        <label class="form-label">Mot de passe actuel</label>
+        <input type="password" name="old_password" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nouveau mot de passe (min. 8 car.)</label>
+        <input type="password" name="new_password" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmer</label>
+        <input type="password" name="confirm_password" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Changer le mot de passe</button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

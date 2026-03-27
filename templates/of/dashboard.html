@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — Triax Ink{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('of.nouveau') }}" class="btn btn-primary">＋ Nouvel OF</a>
+{% endblock %}
+
+{% block content %}
+<!-- KPIs -->
+<div class="grid-kpi">
+  <div class="kpi">
+    <div class="kpi-label">OF ce mois</div>
+    <div class="kpi-value">{{ ofs|selectattr('statut','equalto','CALCULE')|list|length }}</div>
+    <div class="kpi-sub">ordres de fabrication</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Type d'encre</div>
+    <div class="kpi-value">{{ current_user.type_encre }}</div>
+    <div class="kpi-sub">densité {{ current_user.densite_encre }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Marge de sécurité</div>
+    <div class="kpi-value">{{ current_user.marge_securite_pct|int }}%</div>
+    <div class="kpi-sub">configurable dans le profil</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Crédits IA restants</div>
+    <div class="kpi-value {% if current_user.quota_restant == 0 %}text-danger{% endif %}">
+      {{ current_user.quota_restant }}
+    </div>
+    <div class="kpi-sub">sur {{ current_user.quota_total }} total</div>
+  </div>
+</div>
+
+{% if current_user.quota_restant == 0 %}
+<div class="alert alert-warning">
+  ⚠ Votre quota d'analyses IA est épuisé. Contactez Triax pour recharger vos crédits.
+  Vous pouvez continuer à utiliser la saisie manuelle des taux de couverture.
+</div>
+{% elif current_user.quota_restant < 5 %}
+<div class="alert alert-warning">
+  Attention : il ne vous reste que {{ current_user.quota_restant }} crédit(s) d'analyse IA.
+</div>
+{% endif %}
+
+<!-- Derniers OF -->
+<div class="card">
+  <div class="flex-between mb-2">
+    <div class="card-title" style="margin-bottom:0">Derniers ordres de fabrication</div>
+    <a href="{{ url_for('of.historique') }}" class="btn btn-sm">Voir tout</a>
+  </div>
+
+  {% if ofs %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>N° OF</th>
+        <th>Produit</th>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Surface</th>
+        <th>Statut</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for of in ofs %}
+      <tr>
+        <td><strong>{{ of.reference_of }}</strong></td>
+        <td>{{ of.nom_produit or '—' }}</td>
+        <td>{{ of.date_of.strftime('%d/%m/%Y') }}</td>
+        <td>{{ 'Bobine' if of.type_tirage == 'BOBINE' else 'Feuille/Feuille' }}</td>
+        <td>{{ of.surface_m2 }} m²</td>
+        <td>
+          <span class="badge badge-{{ of.statut|lower }}">
+            {{ of.statut|capitalize }}
+          </span>
+        </td>
+        <td>
+          <div class="flex-gap">
+            <a href="{{ url_for('of.voir', of_id=of.id) }}" class="btn btn-sm">Voir</a>
+            <a href="{{ url_for('export.bon_pdf', of_id=of.id) }}" class="btn btn-sm">PDF</a>
+            <a href="{{ url_for('export.bon_excel', of_id=of.id) }}" class="btn btn-sm">Excel</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center; padding:40px 0; color:var(--gray-mid)">
+    Aucun OF pour l'instant. <a href="{{ url_for('of.nouveau') }}">Créer le premier →</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Triax Ink Management{% endblock %}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue-dark: #0C447C; --blue: #185FA5; --blue-light: #E6F1FB;
+      --teal: #1D9E75; --teal-light: #E1F5EE;
+      --gray-dark: #2C2C2A; --gray: #5F5E5A; --gray-mid: #888780;
+      --gray-light: #D3D1C7; --gray-bg: #F1EFE8; --white: #fff;
+      --amber: #BA7517; --amber-light: #FAEEDA;
+      --red: #A32D2D; --red-light: #FCEBEB;
+      --green: #3B6D11; --green-light: #EAF3DE;
+      --sidebar-w: 220px; --topbar-h: 52px;
+      --radius: 8px; --radius-lg: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.07);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           font-size: 14px; color: var(--gray-dark); background: var(--gray-bg);
+           min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-w);
+               height: 100vh; background: var(--white);
+               border-right: 1px solid var(--gray-light);
+               display: flex; flex-direction: column; z-index: 100; }
+    .sidebar-logo { padding: 18px 16px 14px;
+                    border-bottom: 1px solid var(--gray-light); }
+    .sidebar-logo-title { font-size: 14px; font-weight: 600;
+                          color: var(--blue-dark); letter-spacing: -.3px; }
+    .sidebar-logo-sub { font-size: 11px; color: var(--gray-mid); margin-top: 2px; }
+    .sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 8px; }
+    .nav-section { font-size: 10px; font-weight: 600; color: var(--gray-mid);
+                   padding: 10px 10px 4px; letter-spacing: .6px; text-transform: uppercase; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px;
+                border-radius: var(--radius); text-decoration: none;
+                color: var(--gray); font-size: 13px; transition: all .12s; }
+    .nav-item:hover { background: var(--gray-bg); color: var(--gray-dark); }
+    .nav-item.active { background: var(--blue-light); color: var(--blue-dark);
+                       font-weight: 500; }
+    .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+    .sidebar-quota { margin: 10px 10px 14px; padding: 10px 12px;
+                     background: var(--gray-bg); border-radius: var(--radius); }
+    .quota-label { font-size: 11px; color: var(--gray-mid); margin-bottom: 5px; }
+    .quota-bar { height: 4px; background: var(--gray-light); border-radius: 2px; overflow: hidden; }
+    .quota-fill { height: 100%; background: var(--blue); border-radius: 2px; transition: width .3s; }
+    .quota-text { font-size: 11px; color: var(--gray-dark); margin-top: 4px; }
+
+    /* ── Layout principal ── */
+    .main-wrap { margin-left: var(--sidebar-w); min-height: 100vh;
+                 display: flex; flex-direction: column; }
+    .topbar { height: var(--topbar-h); background: var(--white);
+              border-bottom: 1px solid var(--gray-light);
+              display: flex; align-items: center; padding: 0 24px;
+              justify-content: space-between; position: sticky; top: 0; z-index: 90; }
+    .topbar-title { font-size: 15px; font-weight: 500; color: var(--gray-dark); }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .content { flex: 1; padding: 24px; max-width: 1200px; width: 100%; }
+
+    /* ── Composants ── */
+    .card { background: var(--white); border: 1px solid var(--gray-light);
+            border-radius: var(--radius-lg); padding: 18px 20px; }
+    .card-title { font-size: 13px; font-weight: 500; color: var(--gray-dark);
+                  margin-bottom: 14px; }
+    .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+                gap: 12px; margin-bottom: 20px; }
+    .kpi { background: var(--gray-bg); border-radius: var(--radius); padding: 14px 16px; }
+    .kpi-label { font-size: 11px; color: var(--gray-mid); margin-bottom: 5px; }
+    .kpi-value { font-size: 22px; font-weight: 500; color: var(--gray-dark); }
+    .kpi-sub { font-size: 11px; color: var(--gray-mid); margin-top: 3px; }
+
+    .btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px;
+           font-size: 13px; border-radius: var(--radius); border: 1px solid var(--gray-light);
+           background: transparent; color: var(--gray-dark); cursor: pointer;
+           text-decoration: none; transition: all .12s; font-family: inherit; }
+    .btn:hover { background: var(--gray-bg); }
+    .btn-primary { background: var(--blue); border-color: var(--blue); color: var(--white); }
+    .btn-primary:hover { background: var(--blue-dark); border-color: var(--blue-dark); }
+    .btn-danger { background: var(--red-light); border-color: var(--red); color: var(--red); }
+    .btn-danger:hover { background: var(--red); color: var(--white); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table th { text-align: left; font-weight: 500; color: var(--gray-mid);
+                padding: 8px 10px; border-bottom: 1px solid var(--gray-light);
+                font-size: 11px; white-space: nowrap; }
+    .table td { padding: 9px 10px; border-bottom: 1px solid var(--gray-bg);
+                color: var(--gray-dark); vertical-align: middle; }
+    .table tr:last-child td { border-bottom: none; }
+    .table tr:hover td { background: var(--gray-bg); }
+
+    .badge { display: inline-block; font-size: 11px; padding: 2px 8px;
+             border-radius: 10px; font-weight: 500; }
+    .badge-uv { background: var(--blue-light); color: var(--blue-dark); }
+    .badge-eau { background: var(--teal-light); color: #085041; }
+    .badge-solv { background: var(--amber-light); color: #633806; }
+    .badge-ok { background: var(--green-light); color: var(--green); }
+    .badge-low { background: var(--amber-light); color: var(--amber); }
+    .badge-danger { background: var(--red-light); color: var(--red); }
+    .badge-calcule { background: var(--blue-light); color: var(--blue-dark); }
+    .badge-brouillon { background: var(--gray-bg); color: var(--gray-mid); }
+
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 11px; font-weight: 500;
+                  color: var(--gray-mid); margin-bottom: 4px; }
+    .form-control { width: 100%; padding: 7px 10px; font-size: 13px;
+                    border: 1px solid var(--gray-light); border-radius: var(--radius);
+                    background: var(--white); color: var(--gray-dark);
+                    font-family: inherit; transition: border-color .12s; }
+    .form-control:focus { outline: none; border-color: var(--blue); }
+    .form-row { display: grid; gap: 12px; }
+    .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+    .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+    .alert { padding: 10px 14px; border-radius: var(--radius); margin-bottom: 14px;
+             font-size: 13px; border: 1px solid transparent; }
+    .alert-success { background: var(--green-light); border-color: #9ED193; color: var(--green); }
+    .alert-danger { background: var(--red-light); border-color: #F09595; color: var(--red); }
+    .alert-warning { background: var(--amber-light); border-color: #FAC775; color: var(--amber); }
+    .alert-info { background: var(--blue-light); border-color: #85B7EB; color: var(--blue-dark); }
+
+    .divider { border: none; border-top: 1px solid var(--gray-light); margin: 18px 0; }
+    .text-muted { color: var(--gray-mid); }
+    .text-right { text-align: right; }
+    .flex { display: flex; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .flex-gap { display: flex; gap: 8px; align-items: center; }
+    .mt-1 { margin-top: 8px; } .mt-2 { margin-top: 14px; } .mt-3 { margin-top: 20px; }
+    .mb-1 { margin-bottom: 8px; } .mb-2 { margin-bottom: 14px; }
+
+    /* Responsive mini */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .main-wrap { margin-left: 0; }
+      .form-row.cols-2, .form-row.cols-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-title">Triax Ink</div>
+    <div class="sidebar-logo-sub">Gestion d'encre flexo</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">OF</div>
+    <a href="{{ url_for('of.dashboard') }}" class="nav-item {% if request.endpoint == 'of.dashboard' %}active{% endif %}">
+      <span class="nav-icon">⊞</span> Tableau de bord
+    </a>
+    <a href="{{ url_for('of.nouveau') }}" class="nav-item {% if request.endpoint == 'of.nouveau' %}active{% endif %}">
+      <span class="nav-icon">＋</span> Nouvel OF
+    </a>
+    <a href="{{ url_for('of.historique') }}" class="nav-item {% if request.endpoint == 'of.historique' %}active{% endif %}">
+      <span class="nav-icon">☰</span> Historique
+    </a>
+    <div class="nav-section">Référentiels</div>
+    <a href="{{ url_for('ref.encres') }}" class="nav-item {% if 'encre' in request.endpoint %}active{% endif %}">
+      <span class="nav-icon">◉</span> Encres
+    </a>
+    <a href="{{ url_for('ref.anilox') }}" class="nav-item {% if 'anilox' in request.endpoint %}active{% endif %}">
+      <span class="nav-icon">⊗</span> Anilox
+    </a>
+    {% if current_user.is_admin %}
+    <div class="nav-section">Administration</div>
+    <a href="{{ url_for('admin.index') }}" class="nav-item {% if request.blueprint == 'admin' %}active{% endif %}">
+      <span class="nav-icon">⚙</span> Clients & Quotas
+    </a>
+    {% endif %}
+    <div class="nav-section">Compte</div>
+    <a href="{{ url_for('auth.profil') }}" class="nav-item {% if request.endpoint == 'auth.profil' %}active{% endif %}">
+      <span class="nav-icon">👤</span> Profil
+    </a>
+    <a href="{{ url_for('auth.logout') }}" class="nav-item">
+      <span class="nav-icon">↩</span> Déconnexion
+    </a>
+  </nav>
+  <!-- Quota IA -->
+  {% set pct = [(current_user.quota_utilise / current_user.quota_total * 100)|int, 100]|min if current_user.quota_total > 0 else 0 %}
+  <div class="sidebar-quota">
+    <div class="quota-label">Analyses IA</div>
+    <div class="quota-bar"><div class="quota-fill" style="width:{{ pct }}%"></div></div>
+    <div class="quota-text">{{ current_user.quota_restant }} / {{ current_user.quota_total }} crédits restants</div>
+  </div>
+</aside>
+{% endif %}
+
+<!-- Main -->
+<div class="main-wrap">
+  {% if current_user.is_authenticated %}
+  <div class="topbar">
+    <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+    <div class="topbar-right">
+      <span class="text-muted" style="font-size:12px">{{ current_user.reference }} — {{ current_user.nom }}</span>
+      {% block topbar_actions %}{% endblock %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+</body>
+</html>

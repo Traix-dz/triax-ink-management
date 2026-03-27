@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}OF {{ of.reference_of }} — Triax Ink{% endblock %}
+{% block page_title %}OF {{ of.reference_of }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('export.bon_pdf', of_id=of.id) }}" class="btn btn-primary">⬇ PDF</a>
+  <a href="{{ url_for('export.bon_excel', of_id=of.id) }}" class="btn">⬇ Excel</a>
+{% endblock %}
+
+{% block content %}
+<!-- Infos OF -->
+<div class="card mb-2">
+  <div class="flex-between mb-2">
+    <div class="card-title" style="margin:0">Informations générales</div>
+    <span class="badge badge-{{ of.statut|lower }}">{{ of.statut }}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
+    <div><div class="kpi-label">Client</div><div style="font-weight:500">{{ of.client.nom }}</div></div>
+    <div><div class="kpi-label">Produit</div><div>{{ of.nom_produit or '—' }}</div></div>
+    <div><div class="kpi-label">Date</div><div>{{ of.date_of.strftime('%d/%m/%Y') }}</div></div>
+    <div><div class="kpi-label">Type tirage</div>
+      <div>{{ 'Bobine → bobine' if of.type_tirage == 'BOBINE' else 'Feuille → feuille' }}</div></div>
+    <div><div class="kpi-label">Format</div>
+      <div>
+        {% if of.type_tirage == 'BOBINE' %}
+          {{ of.laize_m }} m × {{ of.metrage_m }} m
+        {% else %}
+          {{ (of.hauteur_m * 100)|round|int }} cm × {{ (of.largeur_m * 100)|round|int }} cm — {{ of.nb_tirages }} tirages
+        {% endif %}
+      </div>
+    </div>
+    <div><div class="kpi-label">Surface totale</div><div style="font-weight:500">{{ of.surface_m2 }} m²</div></div>
+    <div><div class="kpi-label">Marge appliquée</div><div>{{ of.marge_appliquee_pct }}%</div></div>
+    <div><div class="kpi-label">Source couverture</div>
+      <div>{{ 'Analyse IA' if of.taux_source == 'IA' else 'Saisie manuelle' }}</div></div>
+  </div>
+</div>
+
+<!-- Tableau des stations -->
+<div class="card mb-2">
+  <div class="card-title">Stations couleur — Résultats</div>
+  {% if stations %}
+  <div style="overflow-x:auto">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Couleur</th>
+        <th>Encre</th>
+        <th>Anilox</th>
+        <th style="text-align:right">Vol. (cm³/m²)</th>
+        <th style="text-align:right">Coeff.</th>
+        <th style="text-align:right">Couv. %</th>
+        <th style="text-align:right">Masse nette (kg)</th>
+        <th style="text-align:right;color:var(--blue-dark)">Masse recommandée (kg)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in stations %}
+      <tr>
+        <td style="color:var(--gray-mid)">{{ s.ordre + 1 }}</td>
+        <td><strong>{{ s.nom_couleur }}</strong></td>
+        <td style="font-size:12px">{{ s.encre_label }}</td>
+        <td style="font-size:12px">{{ s.anilox_label }}</td>
+        <td style="text-align:right">{{ '%.2f'|format(s.anilox_volume) }}</td>
+        <td style="text-align:right">{{ '%.2f'|format(s.anilox_coeff) }}</td>
+        <td style="text-align:right">
+          {% if s.taux_couverture_pct is not none %}{{ '%.1f'|format(s.taux_couverture_pct) }}%
+          {% else %}—{% endif %}
+        </td>
+        <td style="text-align:right">
+          {% if s.masse_nette_kg is not none %}{{ '%.3f'|format(s.masse_nette_kg) }}
+          {% else %}—{% endif %}
+        </td>
+        <td style="text-align:right;font-weight:500;color:var(--blue-dark)">
+          {% if s.masse_avec_marge_kg is not none %}{{ '%.3f'|format(s.masse_avec_marge_kg) }}
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr style="background:var(--blue-light)">
+        <td colspan="7" style="font-weight:500;color:var(--blue-dark)">TOTAL</td>
+        <td style="text-align:right;font-weight:500;color:var(--blue-dark)">{{ '%.3f'|format(total_nette) }} kg</td>
+        <td style="text-align:right;font-weight:700;color:var(--blue-dark);font-size:15px">{{ '%.3f'|format(total_marge) }} kg</td>
+      </tr>
+    </tfoot>
+  </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:30px;color:var(--gray-mid)">Aucune station enregistrée.</div>
+  {% endif %}
+</div>
+
+<!-- Actions -->
+<div class="flex-gap">
+  <a href="{{ url_for('of.dashboard') }}" class="btn">← Retour</a>
+  <a href="{{ url_for('export.bon_pdf', of_id=of.id) }}" class="btn btn-primary">⬇ Télécharger le bon PDF</a>
+  <a href="{{ url_for('export.bon_excel', of_id=of.id) }}" class="btn">⬇ Télécharger Excel</a>
+  <form method="POST" action="{{ url_for('of.supprimer', of_id=of.id) }}"
+        onsubmit="return confirm('Supprimer cet OF ?')" style="margin:0">
+    <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+  </form>
+</div>
+{% endblock %}

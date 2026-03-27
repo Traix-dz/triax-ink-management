@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Anilox — Triax Ink{% endblock %}
+{% block page_title %}Référentiel Anilox{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="flex-between mb-2">
+    <div class="card-title" style="margin:0">
+      Anilox enregistrés
+      <span style="font-size:12px;font-weight:400;color:var(--gray-mid);margin-left:8px">
+        {{ anilox_list|length }} anilox
+      </span>
+    </div>
+    <div class="flex-gap">
+      <form method="POST" action="{{ url_for('ref.importer_anilox') }}"
+            enctype="multipart/form-data" style="display:flex;gap:6px;align-items:center">
+        <input type="file" name="fichier" accept=".csv,.xlsx,.xls"
+               class="form-control" style="width:auto;font-size:12px">
+        <button type="submit" class="btn btn-sm">⬆ Importer</button>
+      </form>
+      <a href="{{ url_for('ref.ajouter_anilox') }}" class="btn btn-primary btn-sm">＋ Ajouter</a>
+    </div>
+  </div>
+
+  <div class="alert alert-info" style="font-size:12px;margin-bottom:12px">
+    Format CSV/Excel attendu — colonnes : <code>reference</code>, <code>volume_cm3_m2</code>,
+    <code>coeff_transfert</code>, <code>lineature</code> (optionnel)
+  </div>
+
+  {% if anilox_list %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Référence</th>
+        <th>Linéature (l/cm)</th>
+        <th>Volume (cm³/m²)</th>
+        <th>Coeff. transfert</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in anilox_list %}
+      <tr>
+        <td><strong>{{ a.reference }}</strong></td>
+        <td>{{ a.lineature if a.lineature else '—' }}</td>
+        <td>{{ '%.2f'|format(a.volume_cm3_m2) }}</td>
+        <td>{{ '%.2f'|format(a.coeff_transfert) }}</td>
+        <td>
+          <div class="flex-gap">
+            <a href="{{ url_for('ref.modifier_anilox', ani_id=a.id) }}" class="btn btn-sm">Modifier</a>
+            <form method="POST" action="{{ url_for('ref.supprimer_anilox', ani_id=a.id) }}"
+                  onsubmit="return confirm('Supprimer l\'anilox {{ a.reference }} ?')" style="margin:0">
+              <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center;padding:40px;color:var(--gray-mid)">
+    Aucun anilox enregistré.<br>
+    <a href="{{ url_for('ref.ajouter_anilox') }}" style="color:var(--blue)">Ajouter le premier →</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

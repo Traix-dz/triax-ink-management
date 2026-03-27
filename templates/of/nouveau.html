@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+{% block title %}Nouvel OF — Triax Ink{% endblock %}
+{% block page_title %}Nouvel ordre de fabrication{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('of.sauvegarder') }}" id="form-of" enctype="multipart/form-data">
+
+<!-- ── Section 1 : En-tête OF ────────────────────────────────────────────── -->
+<div class="card mb-2">
+  <div class="card-title">Identification de l'OF</div>
+  <div class="form-row cols-3">
+    <div class="form-group">
+      <label class="form-label">N° OF *</label>
+      <input type="text" name="reference_of" class="form-control" placeholder="OF-2024-001" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Produit / Description</label>
+      <input type="text" name="nom_produit" class="form-control" placeholder="Boîte cerise 250g">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date *</label>
+      <input type="date" name="date_of" class="form-control" value="{{ today }}" required>
+    </div>
+  </div>
+</div>
+
+<!-- ── Section 2 : Format de tirage ─────────────────────────────────────── -->
+<div class="card mb-2">
+  <div class="card-title">Format de tirage</div>
+  <div class="form-group">
+    <label class="form-label">Type de tirage</label>
+    <div class="flex-gap">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="radio" name="type_tirage" value="BOBINE" id="r-bobine" checked onchange="switchTirage('BOBINE')">
+        Bobine → bobine
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="radio" name="type_tirage" value="FEUILLE" id="r-feuille" onchange="switchTirage('FEUILLE')">
+        Feuille → feuille
+      </label>
+    </div>
+  </div>
+
+  <!-- Bobine -->
+  <div id="section-bobine" class="form-row cols-2">
+    <div class="form-group">
+      <label class="form-label">Laize (m)</label>
+      <input type="number" name="laize_m" class="form-control" step="0.001" min="0"
+             placeholder="0.500" id="laize_m">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Métrage (m)</label>
+      <input type="number" name="metrage_m" class="form-control" step="1" min="0"
+             placeholder="5000" id="metrage_m">
+    </div>
+  </div>
+
+  <!-- Feuille -->
+  <div id="section-feuille" style="display:none">
+    <div class="form-row cols-3">
+      <div class="form-group">
+        <label class="form-label">Hauteur (m)</label>
+        <input type="number" name="hauteur_m" class="form-control" step="0.001" min="0" id="hauteur_m">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Largeur (m)</label>
+        <input type="number" name="largeur_m" class="form-control" step="0.001" min="0" id="largeur_m">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nombre de tirages</label>
+        <input type="number" name="nb_tirages" class="form-control" step="1" min="0" id="nb_tirages">
+      </div>
+    </div>
+  </div>
+
+  <!-- Surface calculée -->
+  <div style="padding:8px 12px;background:var(--blue-light);border-radius:var(--radius);
+              font-size:12px;color:var(--blue-dark);margin-top:4px" id="surface-preview">
+    Surface : — m²
+  </div>
+</div>
+
+<!-- ── Section 3 : Marge ─────────────────────────────────────────────────── -->
+<div class="card mb-2">
+  <div class="card-title">Marge de sécurité</div>
+  <div class="form-row cols-2">
+    <div class="form-group">
+      <label class="form-label">Marge appliquée (%)</label>
+      <input type="number" name="marge_pct" class="form-control" step="0.5" min="0" max="50"
+             value="{{ marge }}" id="marge-pct">
+    </div>
+    <div style="display:flex;align-items:flex-end;padding-bottom:14px;font-size:12px;color:var(--gray-mid)">
+      Votre marge par défaut : {{ marge }}% (modifiable dans le profil)
+    </div>
+  </div>
+</div>
+
+<!-- ── Section 4 : Stations couleur ─────────────────────────────────────── -->
+<div class="card mb-2">
+  <div class="flex-between mb-2">
+    <div class="card-title" style="margin:0">Stations couleur</div>
+    <div class="flex-gap">
+      <!-- Chargement config machine -->
+      {% if configs %}
+      <select id="select-config" class="form-control" style="width:auto;font-size:12px"
+              onchange="chargerConfig(this.value)">
+        <option value="">— Charger une config machine —</option>
+        {% for c in configs %}
+        <option value="{{ c.id }}">{{ c.nom }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <button type="button" class="btn btn-sm" onclick="ajouterStation()">＋ Ajouter couleur</button>
+      <button type="button" class="btn btn-sm" onclick="sauvegarderConfig()" id="btn-save-config">⬇ Sauvegarder config</button>
+    </div>
+  </div>
+
+  <!-- En-têtes -->
+  <div style="display:grid;grid-template-columns:120px 1fr 1fr 90px 80px 90px 80px 36px;
+              gap:6px;padding:6px 8px;font-size:11px;font-weight:500;color:var(--gray-mid);
+              border-bottom:1px solid var(--gray-light);margin-bottom:4px" id="stations-header">
+    <div>Couleur</div>
+    <div>Encre</div>
+    <div>Anilox</div>
+    <div>Vol. cm³/m²</div>
+    <div>Coeff.</div>
+    <div>Couv. %</div>
+    <div>Masse ≈</div>
+    <div></div>
+  </div>
+
+  <div id="stations-container"></div>
+
+  <!-- Boutons couleurs rapides -->
+  <div class="flex-gap mt-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;color:var(--gray-mid)">Ajouter :</span>
+    {% for c in ['C','M','J','N','Blanc','Vernis'] %}
+    <button type="button" class="btn btn-sm" onclick="ajouterStation('{{ c }}')">{{ c }}</button>
+    {% endfor %}
+    <button type="button" class="btn btn-sm" onclick="ajouterStation('Pantone')">+ Pantone</button>
+  </div>
+</div>
+
+<!-- ── Section 5 : Analyse PDF ───────────────────────────────────────────── -->
+<div class="card mb-2">
+  <div class="card-title">Analyse PDF — Taux de couverture automatique</div>
+  {% if current_user.quota_restant > 0 %}
+  <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap">
+    <div class="form-group" style="flex:1;min-width:200px;margin:0">
+      <label class="form-label">Fichier PDF (séparations couleur)</label>
+      <input type="file" id="pdf-input" accept=".pdf" class="form-control">
+    </div>
+    <button type="button" class="btn btn-primary" onclick="lancerAnalyseIA()" id="btn-ia">
+      ⚡ Analyser avec l'IA ({{ current_user.quota_restant }} crédit{{ 's' if current_user.quota_restant > 1 }})
+    </button>
+  </div>
+  <div id="ia-status" style="margin-top:8px;font-size:12px;color:var(--gray-mid)"></div>
+  {% else %}
+  <div class="alert alert-warning">Quota IA épuisé — saisir les taux manuellement.</div>
+  {% endif %}
+  <div class="alert alert-info mt-1" style="font-size:12px">
+    💡 Les taux extraits par l'IA sont pré-remplis et modifiables avant le calcul.
+  </div>
+</div>
+
+<!-- ── Récapitulatif ─────────────────────────────────────────────────────── -->
+<div class="card mb-2" id="recap-card" style="display:none">
+  <div class="card-title">Récapitulatif — Masses estimées</div>
+  <div id="recap-table"></div>
+</div>
+
+<!-- Submit -->
+<div class="flex-gap">
+  <button type="submit" class="btn btn-primary" style="padding:10px 24px;font-size:14px">
+    💾 Sauvegarder et calculer
+  </button>
+  <a href="{{ url_for('of.dashboard') }}" class="btn">Annuler</a>
+</div>
+
+</form>
+
+<!-- Données pour le JS -->
+<script>
+const ENCRES = {{ encres | tojson }};
+const ANILOX = {{ anilox_list | tojson }};
+const CONFIGS = {{ configs | tojson }};
+let stationCount = 0;
+
+// Sérialisation pour Jinja → JS
+const encresData = ENCRES.map(e => ({id:e.id, reference:e.reference, nom:e.nom, densite:e.densite}));
+const aniloxData = ANILOX.map(a => ({id:a.id, reference:a.reference, volume:a.volume_cm3_m2, coeff:a.coeff_transfert}));
+
+function switchTirage(type) {
+  document.getElementById('section-bobine').style.display = type === 'BOBINE' ? '' : 'none';
+  document.getElementById('section-feuille').style.display = type === 'FEUILLE' ? '' : 'none';
+  majSurface();
+}
+
+function majSurface() {
+  const type = document.querySelector('input[name="type_tirage"]:checked')?.value;
+  let surf = null;
+  if (type === 'BOBINE') {
+    const l = parseFloat(document.getElementById('laize_m').value);
+    const m = parseFloat(document.getElementById('metrage_m').value);
+    if (l > 0 && m > 0) surf = (l * m).toFixed(2);
+  } else {
+    const h = parseFloat(document.getElementById('hauteur_m').value);
+    const w = parseFloat(document.getElementById('largeur_m').value);
+    const n = parseInt(document.getElementById('nb_tirages').value);
+    if (h > 0 && w > 0 && n > 0) surf = (h * w * n).toFixed(2);
+  }
+  document.getElementById('surface-preview').textContent = surf ? `Surface : ${surf} m²` : 'Surface : — m²';
+  majMasses();
+}
+
+['laize_m','metrage_m','hauteur_m','largeur_m','nb_tirages'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', majSurface);
+});
+
+function getSurface() {
+  const type = document.querySelector('input[name="type_tirage"]:checked')?.value;
+  if (type === 'BOBINE') {
+    const l = parseFloat(document.getElementById('laize_m').value);
+    const m = parseFloat(document.getElementById('metrage_m').value);
+    return (l > 0 && m > 0) ? l * m : null;
+  } else {
+    const h = parseFloat(document.getElementById('hauteur_m').value);
+    const w = parseFloat(document.getElementById('largeur_m').value);
+    const n = parseInt(document.getElementById('nb_tirages').value);
+    return (h > 0 && w > 0 && n > 0) ? h * w * n : null;
+  }
+}
+
+function ajouterStation(nomCouleur = '') {
+  const idx = stationCount++;
+  const container = document.getElementById('stations-container');
+  const row = document.createElement('div');
+  row.id = `station-${idx}`;
+  row.style.cssText = 'display:grid;grid-template-columns:120px 1fr 1fr 90px 80px 90px 80px 36px;gap:6px;align-items:center;padding:5px 8px;border-radius:6px;margin-bottom:4px;background:var(--gray-bg)';
+
+  // Sélect encre
+  let encreOpts = `<option value="">— Encre —</option>`;
+  encresData.forEach(e => {
+    encreOpts += `<option value="${e.id}" data-densite="${e.densite}">${e.reference} — ${e.nom}</option>`;
+  });
+
+  // Sélect anilox
+  let aniloxOpts = `<option value="">— Anilox —</option>`;
+  aniloxData.forEach(a => {
+    aniloxOpts += `<option value="${a.id}" data-volume="${a.volume}" data-coeff="${a.coeff}">${a.reference} (${a.volume} cm³/m²)</option>`;
+  });
+
+  row.innerHTML = `
+    <input type="text" name="couleur[]" class="form-control" style="font-size:12px"
+           placeholder="C / Pantone 485" value="${nomCouleur}" id="nom-${idx}">
+    <div>
+      <select name="encre_id[]" class="form-control" style="font-size:12px" id="encre-${idx}"
+              onchange="majDensite(${idx})">${encreOpts}</select>
+      <input type="hidden" name="encre_ref[]" id="encreref-${idx}">
+    </div>
+    <select name="anilox_id[]" class="form-control" style="font-size:12px" id="ani-${idx}"
+            onchange="majAnilox(${idx})">${aniloxOpts}</select>
+    <input type="number" name="anilox_volume[]" class="form-control" style="font-size:12px"
+           step="0.01" min="0" placeholder="cm³/m²" id="vol-${idx}"
+           oninput="majMasse(${idx})">
+    <input type="number" name="anilox_coeff[]" class="form-control" style="font-size:12px"
+           step="0.01" min="0" max="1" placeholder="0.80" id="coeff-${idx}"
+           oninput="majMasse(${idx})">
+    <input type="number" name="taux_couverture[]" class="form-control" style="font-size:12px"
+           step="0.1" min="0" max="100" placeholder="%" id="taux-${idx}"
+           oninput="majMasse(${idx})">
+    <div id="masse-${idx}" style="font-size:11px;font-weight:500;color:var(--blue-dark);text-align:center">—</div>
+    <button type="button" onclick="supprimerStation(${idx})"
+            style="border:none;background:none;cursor:pointer;color:var(--gray-mid);font-size:16px">×</button>
+  `;
+
+  container.appendChild(row);
+  document.getElementById('stations-header').style.display = 'grid';
+}
+
+function supprimerStation(idx) {
+  const el = document.getElementById(`station-${idx}`);
+  if (el) el.remove();
+  majMasses();
+}
+
+function majAnilox(idx) {
+  const sel = document.getElementById(`ani-${idx}`);
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.volume) {
+    document.getElementById(`vol-${idx}`).value = opt.dataset.volume;
+    document.getElementById(`coeff-${idx}`).value = opt.dataset.coeff;
+    majMasse(idx);
+  }
+}
+
+function majDensite(idx) {
+  // La densité est gérée côté serveur via encre_id
+  majMasse(idx);
+}
+
+function majMasse(idx) {
+  const taux = parseFloat(document.getElementById(`taux-${idx}`)?.value);
+  const vol = parseFloat(document.getElementById(`vol-${idx}`)?.value);
+  const coeff = parseFloat(document.getElementById(`coeff-${idx}`)?.value);
+  const surf = getSurface();
+  const marge = parseFloat(document.getElementById('marge-pct').value) || 10;
+  const el = document.getElementById(`masse-${idx}`);
+
+  // Récupérer la densité depuis l'encre sélectionnée
+  const encreEl = document.getElementById(`encre-${idx}`);
+  const encreOpt = encreEl?.options[encreEl.selectedIndex];
+  const densite = parseFloat(encreOpt?.dataset?.densite) || {{ current_user.densite_encre }};
+
+  if (taux >= 0 && vol > 0 && coeff > 0 && surf > 0) {
+    const volEncre = vol * coeff * (taux / 100) * surf;
+    const kg = (volEncre * densite) / 1000;
+    const kgMarge = kg * (1 + marge / 100);
+    el.textContent = `${kgMarge.toFixed(3)} kg`;
+  } else {
+    el.textContent = '—';
+  }
+}
+
+function majMasses() {
+  let i = 0;
+  while (document.getElementById(`station-${i}`) !== null || i < stationCount) {
+    if (document.getElementById(`station-${i}`)) majMasse(i);
+    i++;
+  }
+}
+
+document.getElementById('marge-pct').addEventListener('input', majMasses);
+
+function chargerConfig(configId) {
+  if (!configId) return;
+  // Charger via API
+  fetch(`/referentiels/api/configs`)
+    .then(r => r.json())
+    .then(configs => {
+      const c = configs.find(x => x.id == configId);
+      if (!c) return;
+      // Vider les stations existantes
+      document.getElementById('stations-container').innerHTML = '';
+      stationCount = 0;
+      c.stations.forEach(s => {
+        ajouterStation(s.couleur || '');
+        const idx = stationCount - 1;
+        // Sélectionner l'anilox
+        if (s.anilox_id) {
+          const sel = document.getElementById(`ani-${idx}`);
+          for (let opt of sel.options) {
+            if (opt.value == s.anilox_id) {
+              sel.value = s.anilox_id;
+              majAnilox(idx);
+              break;
+            }
+          }
+        }
+      });
+    });
+}
+
+function sauvegarderConfig() {
+  const nom = prompt('Nom pour cette configuration machine :');
+  if (!nom) return;
+  const stations = [];
+  let i = 0;
+  while (i < stationCount) {
+    const el = document.getElementById(`station-${i}`);
+    if (el) {
+      const couleur = document.getElementById(`nom-${i}`)?.value || '';
+      const aniloxId = document.getElementById(`ani-${i}`)?.value || null;
+      const vol = document.getElementById(`vol-${i}`)?.value || '';
+      const coeff = document.getElementById(`coeff-${i}`)?.value || '';
+      stations.push({couleur, anilox_id: aniloxId ? parseInt(aniloxId) : null, volume: parseFloat(vol), coeff: parseFloat(coeff)});
+    }
+    i++;
+  }
+  fetch('/of/sauvegarder-config', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({nom, stations})
+  }).then(r => r.json()).then(d => {
+    if (d.success) alert(`Configuration "${d.nom}" sauvegardée.`);
+    else alert('Erreur : ' + (d.error || 'inconnue'));
+  });
+}
+
+function lancerAnalyseIA() {
+  const pdf = document.getElementById('pdf-input')?.files[0];
+  if (!pdf) { alert('Sélectionnez un fichier PDF d\'abord.'); return; }
+
+  // Récupérer les couleurs des stations
+  const couleurs = [];
+  for (let i = 0; i < stationCount; i++) {
+    const el = document.getElementById(`nom-${i}`);
+    if (el && el.value.trim()) couleurs.push(el.value.trim());
+  }
+  if (couleurs.length === 0) { alert('Ajoutez d\'abord les stations couleur.'); return; }
+
+  const btn = document.getElementById('btn-ia');
+  const status = document.getElementById('ia-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyse en cours…';
+  status.textContent = 'L\'IA analyse le PDF, cela peut prendre 15-30 secondes…';
+
+  const formData = new FormData();
+  formData.append('pdf', pdf);
+  formData.append('couleurs', couleurs.join(','));
+
+  fetch('/of/analyser-pdf', {method: 'POST', body: formData})
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        status.textContent = '❌ ' + data.error;
+        status.style.color = 'var(--red)';
+      } else {
+        // Remplir les taux dans les stations
+        let remplis = 0;
+        for (let i = 0; i < stationCount; i++) {
+          const nom = document.getElementById(`nom-${i}`)?.value.trim();
+          if (nom && data.taux[nom] !== undefined) {
+            document.getElementById(`taux-${i}`).value = data.taux[nom];
+            majMasse(i);
+            remplis++;
+          }
+        }
+        status.innerHTML = `✅ Taux extraits pour ${remplis} couleur(s). Crédit restant : ${data.quota_restant}.`;
+        status.style.color = 'var(--teal)';
+      }
+    })
+    .catch(e => {
+      status.textContent = '❌ Erreur réseau : ' + e;
+      status.style.color = 'var(--red)';
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btn.textContent = '⚡ Analyser avec l\'IA';
+    });
+}
+</script>
+{% endblock %}

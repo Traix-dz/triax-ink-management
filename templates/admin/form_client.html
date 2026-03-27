@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} client — Triax Admin{% endblock %}
+{% block page_title %}{{ action }} un client{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:560px">
+  <div class="card-title">{{ action }} client</div>
+  <form method="POST">
+
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label">Référence client *</label>
+        <input type="text" name="reference" class="form-control"
+               value="{{ client.reference if client else '' }}"
+               placeholder="CLI-001"
+               {% if client %}readonly style="background:var(--gray-bg)"{% endif %}
+               required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nom / Raison sociale *</label>
+        <input type="text" name="nom" class="form-control"
+               value="{{ client.nom if client else '' }}"
+               placeholder="Agropack SAS" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" name="email" class="form-control"
+             value="{{ client.email if client and client.email else '' }}"
+             placeholder="contact@client.com">
+    </div>
+
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label">Type d'encre *</label>
+        <select name="type_encre" class="form-control">
+          {% for t in ['UV','EAU','SOLVANT'] %}
+          <option value="{{ t }}" {% if client and client.type_encre == t %}selected{% endif %}>
+            {{ t }}
+          </option>
+          {% endfor %}
+        </select>
+        <div style="font-size:11px;color:var(--gray-mid);margin-top:3px">
+          Fixe pour ce client — détermine la densité par défaut.
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Marge de sécurité (%)</label>
+        <input type="number" name="marge_securite_pct" class="form-control"
+               step="0.5" min="0" max="50"
+               value="{{ client.marge_securite_pct if client else 10 }}">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Quota d'analyses IA (crédits)</label>
+      <input type="number" name="quota_total" class="form-control"
+             step="1" min="0"
+             value="{{ client.quota_total if client else 0 }}">
+      <div style="font-size:11px;color:var(--gray-mid);margin-top:3px">
+        Nombre d'analyses PDF par IA autorisées. Rechargeable depuis l'admin.
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    {% if not client %}
+    <div class="form-group">
+      <label class="form-label">Mot de passe initial * (min. 8 caractères)</label>
+      <input type="password" name="password" class="form-control"
+             autocomplete="new-password" required minlength="8">
+    </div>
+    {% else %}
+    <div class="form-group">
+      <label class="form-label">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+      <input type="password" name="new_password" class="form-control"
+             autocomplete="new-password" minlength="8">
+    </div>
+    {% endif %}
+
+    <hr class="divider">
+    <div class="flex-gap">
+      <button type="submit" class="btn btn-primary">{{ action }}</button>
+      <a href="{{ url_for('admin.index') }}" class="btn">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

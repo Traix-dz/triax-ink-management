@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Administration — Triax Ink{% endblock %}
+{% block page_title %}Administration Triax{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin.ajouter_client') }}" class="btn btn-primary">＋ Nouveau client</a>
+{% endblock %}
+
+{% block content %}
+<!-- KPIs globaux -->
+<div class="grid-kpi" style="grid-template-columns:repeat(4,1fr)">
+  <div class="kpi">
+    <div class="kpi-label">Clients actifs</div>
+    <div class="kpi-value">{{ clients|selectattr('actif')|list|length }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Total crédits vendus</div>
+    <div class="kpi-value">{{ clients|sum(attribute='quota_total') }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Total crédits utilisés</div>
+    <div class="kpi-value">{{ clients|sum(attribute='quota_utilise') }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Crédits restants</div>
+    <div class="kpi-value">{{ clients|sum(attribute='quota_restant') }}</div>
+  </div>
+</div>
+
+<!-- Table clients -->
+<div class="card">
+  <div class="card-title">Clients</div>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Référence</th>
+        <th>Nom</th>
+        <th>Type encre</th>
+        <th>Marge %</th>
+        <th>Quota total</th>
+        <th>Utilisé</th>
+        <th>Restant</th>
+        <th>Statut</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in clients %}
+      {% if c.role != 'ADMIN' %}
+      <tr style="{{ 'opacity:0.5' if not c.actif }}">
+        <td><strong>{{ c.reference }}</strong></td>
+        <td>{{ c.nom }}</td>
+        <td>
+          <span class="badge badge-{{ c.type_encre|lower|replace('eau','eau')|replace('uv','uv')|replace('solvant','solv') }}">
+            {{ c.type_encre }}
+          </span>
+        </td>
+        <td>{{ c.marge_securite_pct }}%</td>
+        <td>{{ c.quota_total }}</td>
+        <td>{{ c.quota_utilise }}</td>
+        <td>
+          <span class="{{ 'badge badge-danger' if c.quota_restant == 0 else ('badge badge-low' if c.quota_restant < 10 else 'badge badge-ok') }}">
+            {{ c.quota_restant }}
+          </span>
+        </td>
+        <td>
+          <span class="badge {{ 'badge-ok' if c.actif else 'badge-danger' }}">
+            {{ 'Actif' if c.actif else 'Inactif' }}
+          </span>
+        </td>
+        <td>
+          <div class="flex-gap">
+            <a href="{{ url_for('admin.modifier_client', client_id=c.id) }}" class="btn btn-sm">Modifier</a>
+            <!-- Recharge quota -->
+            <form method="POST" action="{{ url_for('admin.recharger_quota', client_id=c.id) }}"
+                  style="display:flex;gap:4px;align-items:center;margin:0">
+              <input type="number" name="ajout" min="1" max="9999" placeholder="+" style="width:60px"
+                     class="form-control" required>
+              <button type="submit" class="btn btn-sm btn-primary">+Crédit</button>
+            </form>
+            <!-- Toggle actif -->
+            <form method="POST" action="{{ url_for('admin.toggle_client', client_id=c.id) }}" style="margin:0">
+              <button type="submit" class="btn btn-sm {{ 'btn-danger' if c.actif else '' }}">
+                {{ 'Désactiver' if c.actif else 'Activer' }}
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

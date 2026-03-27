@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} anilox — Triax Ink{% endblock %}
+{% block page_title %}{{ action }} un anilox{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:480px">
+  <div class="card-title">{{ action }} anilox</div>
+  <form method="POST">
+
+    <div class="form-group">
+      <label class="form-label">Référence *</label>
+      <input type="text" name="reference" class="form-control"
+             value="{{ anilox.reference if anilox else '' }}"
+             placeholder="ex. ANI-012"
+             {% if anilox %}readonly style="background:var(--gray-bg)"{% endif %}
+             required>
+    </div>
+
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label">Linéature (l/cm)</label>
+        <input type="number" name="lineature" class="form-control" step="1" min="0"
+               value="{{ anilox.lineature if anilox and anilox.lineature else '' }}"
+               placeholder="ex. 400">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Volume (cm³/m²) *</label>
+        <input type="number" name="volume_cm3_m2" class="form-control" step="0.01" min="0"
+               value="{{ '%.2f'|format(anilox.volume_cm3_m2) if anilox else '' }}"
+               placeholder="ex. 3.50" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Coefficient de transfert réel *</label>
+      <input type="number" name="coeff_transfert" class="form-control"
+             step="0.01" min="0" max="1"
+             value="{{ '%.2f'|format(anilox.coeff_transfert) if anilox else '0.80' }}"
+             placeholder="entre 0 et 1, ex. 0.80" required>
+      <div style="font-size:11px;color:var(--gray-mid);margin-top:3px">
+        Coefficient réel mesuré sur machine. Valeur typique : 0.70 à 0.90.
+      </div>
+    </div>
+
+    <hr class="divider">
+    <div class="flex-gap">
+      <button type="submit" class="btn btn-primary">{{ action }}</button>
+      <a href="{{ url_for('ref.anilox') }}" class="btn">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Historique OF — Triax Ink{% endblock %}
+{% block page_title %}Historique des OF{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('of.nouveau') }}" class="btn btn-primary">＋ Nouvel OF</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="flex-between mb-2">
+    <div class="card-title" style="margin:0">Tous les ordres de fabrication</div>
+    <span style="font-size:12px;color:var(--gray-mid)">
+      {{ ofs.total }} OF au total
+    </span>
+  </div>
+
+  {% if ofs.items %}
+  <div style="overflow-x:auto">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>N° OF</th>
+        <th>Produit</th>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Surface (m²)</th>
+        <th>Stations</th>
+        <th>Total recommandé</th>
+        <th>Source</th>
+        <th>Statut</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for of in ofs.items %}
+      {% set stations = of.stations.all() %}
+      {% set total_marge = stations | sum(attribute='masse_avec_marge_kg') %}
+      <tr>
+        <td><strong>{{ of.reference_of }}</strong></td>
+        <td>{{ of.nom_produit or '—' }}</td>
+        <td>{{ of.date_of.strftime('%d/%m/%Y') }}</td>
+        <td style="font-size:12px">{{ 'Bobine' if of.type_tirage == 'BOBINE' else 'Feuille/Feuille' }}</td>
+        <td>{{ of.surface_m2 }}</td>
+        <td style="text-align:center">{{ stations|length }}</td>
+        <td style="font-weight:500;color:var(--blue-dark)">
+          {% if total_marge %}{{ '%.3f'|format(total_marge) }} kg{% else %}—{% endif %}
+        </td>
+        <td>
+          <span style="font-size:11px;color:var(--gray-mid)">
+            {{ 'IA' if of.taux_source == 'IA' else 'Manuel' }}
+          </span>
+        </td>
+        <td><span class="badge badge-{{ of.statut|lower }}">{{ of.statut }}</span></td>
+        <td>
+          <div class="flex-gap">
+            <a href="{{ url_for('of.voir', of_id=of.id) }}" class="btn btn-sm">Voir</a>
+            <a href="{{ url_for('export.bon_pdf', of_id=of.id) }}" class="btn btn-sm">PDF</a>
+            <a href="{{ url_for('export.bon_excel', of_id=of.id) }}" class="btn btn-sm">Excel</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if ofs.pages > 1 %}
+  <div class="flex-gap mt-2" style="justify-content:center">
+    {% if ofs.has_prev %}
+      <a href="{{ url_for('of.historique', page=ofs.prev_num) }}" class="btn btn-sm">← Précédent</a>
+    {% endif %}
+    <span style="font-size:12px;color:var(--gray-mid);padding:4px 8px">
+      Page {{ ofs.page }} / {{ ofs.pages }}
+    </span>
+    {% if ofs.has_next %}
+      <a href="{{ url_for('of.historique', page=ofs.next_num) }}" class="btn btn-sm">Suivant →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div style="text-align:center;padding:50px 0;color:var(--gray-mid)">
+    Aucun OF dans l'historique.<br>
+    <a href="{{ url_for('of.nouveau') }}" style="color:var(--blue);margin-top:8px;display:inline-block">
+      Créer le premier OF →
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
