@@ -3,20 +3,15 @@ services:
     name: triax-ink-management
     env: python
     plan: free
-    buildCommand: "pip install -r requirements.txt && flask db upgrade"
-    startCommand: "gunicorn wsgi:app"
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python init_db.py && gunicorn wsgi:app"
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: DATABASE_URL
-        fromDatabase:
-          name: triax-db
-          property: connectionString
+        sync: false
       - key: SECRET_KEY
-        generateValue: true
+        sync: false
       - key: FLASK_ENV
         value: production
-
-databases:
-  - name: triax-db
-    plan: free
+```
